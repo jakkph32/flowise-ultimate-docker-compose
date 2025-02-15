@@ -1,0 +1,131 @@
+---
+name: flowise
+
+networks:
+  flowise:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+    driver: local
+  flowise_data:
+
+services:
+  flowise:
+    container_name: flowise
+    build:
+      context: .
+      dockerfile: ../Flowise/Dockerfile
+    restart: always
+    environment:
+      - PORT=${PORT}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - IFRAME_ORIGINS=${IFRAME_ORIGINS}
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD}
+      - FLOWISE_FILE_SIZE_LIMIT=${FLOWISE_FILE_SIZE_LIMIT}
+      - DEBUG=${DEBUG}
+      - DATABASE_PATH=${DATABASE_PATH}
+      - DATABASE_TYPE=${DATABASE_TYPE}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_SSL=${DATABASE_SSL}
+      - DATABASE_SSL_KEY_BASE64=${DATABASE_SSL_KEY_BASE64}
+      - APIKEY_STORAGE_TYPE=${APIKEY_STORAGE_TYPE}
+      - APIKEY_PATH=${APIKEY_PATH}
+      - SECRETKEY_PATH=${SECRETKEY_PATH}
+      - FLOWISE_SECRETKEY_OVERWRITE=${FLOWISE_SECRETKEY_OVERWRITE}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - LOG_PATH=${LOG_PATH}
+      - BLOB_STORAGE_PATH=${BLOB_STORAGE_PATH}
+      - DISABLE_FLOWISE_TELEMETRY=${DISABLE_FLOWISE_TELEMETRY}
+      - MODEL_LIST_CONFIG_JSON=${MODEL_LIST_CONFIG_JSON}
+      - GLOBAL_AGENT_HTTP_PROXY=${GLOBAL_AGENT_HTTP_PROXY}
+      - GLOBAL_AGENT_HTTPS_PROXY=${GLOBAL_AGENT_HTTPS_PROXY}
+      - GLOBAL_AGENT_NO_PROXY=${GLOBAL_AGENT_NO_PROXY}
+      - DISABLED_NODES=${DISABLED_NODES}
+      - MODE=${MODE}
+      - WORKER_CONCURRENCY=${WORKER_CONCURRENCY}
+      - QUEUE_NAME=${QUEUE_NAME}
+      - QUEUE_REDIS_EVENT_STREAM_MAX_LEN=${QUEUE_REDIS_EVENT_STREAM_MAX_LEN}
+      - REDIS_URL=${REDIS_URL}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USERNAME=${REDIS_USERNAME}
+      - REDIS_TLS=${REDIS_TLS}
+      - REDIS_CERT=${REDIS_CERT}
+      - REDIS_KEY=${REDIS_KEY}
+      - REDIS_CA=${REDIS_CA}
+    ports:
+      - '${PORT}:${PORT}'
+    volumes:
+      - ~/.flowise:/root/.flowise
+    entrypoint: /bin/sh -c "sleep 3; flowise start"
+    networks:
+      - flowise
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    networks:
+      - flowise
+    depends_on:
+      - flowise
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_DB: flowise
+      POSTGRES_USER: exampleuser
+      POSTGRES_PASSWORD: examplepass
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      - flowise
+    networks:
+      - flowise
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - 5050:80
+    depends_on:
+      - flowise
+    networks:
+      - flowise
+
+  local-ai:
+    build:
+      context: .
+      dockerfile: ../local-ai/Dockerfile
+      args:
+      - IMAGE_TYPE=core
+      - BASE_IMAGE=ubuntu:22.04
+    ports:
+      - 8080:8080
+    env_file:
+      - .env
+    environment:
+      - MODELS_PATH=/models
+    #  - DEBUG=true
+    volumes:
+      - ./models:/models:cached
+      - ./images/:/tmp/generated/images/
+    command:
+      - phi-2
