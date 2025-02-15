@@ -111,6 +111,7 @@ services:
       - flowise
 
   local-ai:
+    container_name: local-ai
     build:
       context: .
       dockerfile: ../local-ai/Dockerfile
