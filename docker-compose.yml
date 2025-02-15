@@ -79,7 +79,7 @@ services:
     networks:
       - flowise
     depends_on:
-      - flowise
+      - postgres
 
   postgres:
     image: postgres:latest
@@ -93,7 +93,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     depends_on:
-      - flowise
+      - postgres
     networks:
       - flowise
 
@@ -129,3 +129,5 @@ services:
       - ./images/:/tmp/generated/images/
     command:
       - phi-2
+    depends_on:
+      - flowise
